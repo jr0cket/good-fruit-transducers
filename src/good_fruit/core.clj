@@ -88,3 +88,25 @@
 
 ;; => ({:rotten? false, :clean? true} {:rotten? false, :clean? true})
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Using partial to compose functions together
+
+;; composing functions are read in the lisp way, so we pass the grape-clusters collection to the last composed function first
+(def process-clusters
+  "Takes clusters of grapes and returns only the nice ones, that have been cleaned.  Using comp, read the function from the bottom up to understand the argument."
+  (comp
+   (partial map clean-grape)
+   (partial filter not-rotten)
+   (partial mapcat split-cluster)))
+
+(process-clusters grape-clusters)
+;; => ({:rotten? false, :clean? true} {:rotten? false, :clean? true})
+
+;; the process-clusters definition above uses the lisp way of evaluation - inside-out.
+
+;; Here is a simple example of evaluating a maths expression from inside-out.  Each line is the same expression, but with the innermost expression replaced by its value.
+(+ 2 3 (+ 4 5 (/ 24 6)))
+(+ 2 3 (+ 4 5 4))
+(+ 2 3 13)
+18
+
