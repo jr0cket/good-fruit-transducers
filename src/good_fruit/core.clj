@@ -110,3 +110,79 @@
 (+ 2 3 13)
 18
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Transducers in Clojure
+
+;; several functions that work on sequences (collections) will return what is refered to as a transducer if not passed a sequence as an argument.  For example, if you only pass map a function and not a collector, it returns a transducer that can be used with a collection that is passed to it later.
+
+;; using the transduce feature of each of the functions in process-clusters, we can actually remove the partial function from our code and redefine a simpler version of process-clusters
+
+(def process-clusters
+  (comp
+   (mapcat split-cluster)
+   (filter not-rotten)
+   (map clean-grape)))
+
+
+;; A few things changed since our previous definition process-clusters. First of all, we are using the transducer-returning versions of mapcat, filter and map instead of partially applying them for working on sequences.
+
+;; Also you may have noticed that the order in which they are composed is reversed, they appear in the order they are executed. Note that all map, filter and mapcat return a transducer. filter transforms the reducing function returned by map, applying the filtering before proceeding; mapcat transforms the reducing function returned by filter, applying the mapping and catenation before proceeding.
+
+;; One of the powerful properties of transducers is that they are combined using regular function composition. What’s even more elegant is that the composition of various transducers is itself a transducer! This means that our process-cluster is a transducer too, so we have defined a composable and context-independent algorithmic transformation.
+
+;; Many of the core ClojureScript functions accept a transducer, let’s look at some examples with our newly created process-cluster:
+
+(into [] process-clusters grape-clusters)
+;; => [{:rotten? false, :clean? true} {:rotten? false, :clean? true}]
+
+(sequence process-clusters grape-clusters)
+;; => ({:rotten? false, :clean? true} {:rotten? false, :clean? true})
+
+(reduce (process-clusters conj) [] grape-clusters)
+;; => [{:rotten? false, :clean? true} {:rotten? false, :clean? true}]
+
+;; Since using reduce with the reducing function returned from a transducer is so common, there is a function for reducing with a transformation called transduce. We can now rewrite the previous call to reduce using transduce:
+
+(transduce process-clusters conj [] grape-clusters)
+;; => [{:rotten? false, :clean? true} {:rotten? false, :clean? true}]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Background exploration of map and filter
+
+(defn my-map
+  [f coll]
+  (when-let [s (seq coll)]
+    (cons (f (first s)) (my-map f (rest s)))))
+
+(my-map inc [0 1 2])
+
+
+;; (seq [1 2 3 4])
+;; (list [1 2 3 4])
+;; (map list [1 2 3 4])
+
+
+(defn my-filter
+  [pred coll]
+  (when-let [s (seq coll)]
+    (let [f (first s)
+          r (rest s)]
+      (if (pred f)
+        (cons f (my-filter pred r))
+        (my-filter pred r)))))
+
+(my-filter odd? [0 1 2 3])
+
+(map odd? [1 2 3])
+
+
+(seq ())
+(true? nil)
+(seq [1])
+(true? (seq '(1)))
+(true? 1)
+
+(if (+ 1 1)
+  "true"
+  "false")
